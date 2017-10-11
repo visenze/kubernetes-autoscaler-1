@@ -1,9 +1,10 @@
 all: build
 
-TAG?=dev
+TAG?=$$(cat version.go | grep ClusterAutoscalerVersion | grep -v // | awk -F'=' '{print $$2}' | xargs)
 FLAGS=
 ENVVAR=
 GOOS?=linux
+REGISTRY?=spotinst
 
 deps:
 	go get github.com/tools/godep
@@ -22,12 +23,7 @@ dev-release: build-binary execute-release
 	echo "Release ${TAG} completed"
 
 execute-release:
-ifndef REGISTRY
-	ERR = $(error REGISTRY is undefined)
-	$(ERR)
-endif
-	docker build --pull -t ${REGISTRY}/cluster-autoscaler:${TAG} .
-	gcloud docker -- push ${REGISTRY}/cluster-autoscaler:${TAG}
+	docker build --pull -t ${REGISTRY}/kubernetes-cluster-autoscaler:${TAG} .
 
 clean:
 	rm -f cluster-autoscaler

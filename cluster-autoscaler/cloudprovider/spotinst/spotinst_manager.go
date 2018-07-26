@@ -304,9 +304,6 @@ func (mgr *CloudManager) forceRefresh() error {
 }
 
 func (mgr *CloudManager) regenerateCache() {
-	mgr.cacheMu.Lock()
-	defer mgr.cacheMu.Unlock()
-
 	mgr.cache = make(map[string]*Group)
 	for _, group := range mgr.groups {
 		glog.V(4).Infof("Regenerating resource group information for %s", group.groupID)

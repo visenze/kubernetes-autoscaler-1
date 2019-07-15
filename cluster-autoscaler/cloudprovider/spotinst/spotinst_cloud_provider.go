@@ -17,12 +17,13 @@ limitations under the License.
 package spotinst
 
 import (
-	"github.com/golang/glog"
 	"io"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/autoscaler/cluster-autoscaler/cloudprovider"
+	"k8s.io/autoscaler/cluster-autoscaler/config"
 	"k8s.io/autoscaler/cluster-autoscaler/utils/errors"
+	"k8s.io/klog"
 	"os"
 )
 
@@ -35,8 +36,8 @@ type CloudProvider struct {
 }
 
 // NewCloudProvider returns CloudProvider implementation for Spotinst.
-func NewCloudProvider(manager *CloudManager, resourceLimiter *cloudprovider.ResourceLimiter) (*CloudProvider, error) {
-	glog.Info("Building Spotinst cloud provider")
+func NewCloudProvider(manager *CloudManager, resourceLimiter *cloudprovider.ResourceLimiter) (cloudprovider.CloudProvider, error) {
+	klog.Info("Building Spotinst cloud provider")
 
 	cloud := &CloudProvider{
 		manager:         manager,
@@ -81,7 +82,8 @@ func (c *CloudProvider) GetAvailableMachineTypes() ([]string, error) {
 }
 
 // NewNodeGroup builds a theoretical node group based on the node definition provided.
-func (c *CloudProvider) NewNodeGroup(machineType string, labels map[string]string, systemLabels map[string]string, extraResources map[string]resource.Quantity) (cloudprovider.NodeGroup, error) {
+func (c *CloudProvider) NewNodeGroup(machineType string, labels map[string]string, systemLabels map[string]string,
+	taint []apiv1.Taint, extraResources map[string]resource.Quantity) (cloudprovider.NodeGroup, error) {
 	return nil, cloudprovider.ErrNotImplemented
 }
 
@@ -101,26 +103,31 @@ func (c *CloudProvider) Refresh() error {
 	return c.manager.Refresh()
 }
 
+// GetInstanceID gets the instance ID for the specified node.
+func (c *CloudProvider) GetInstanceID(node *apiv1.Node) string {
+	return node.Spec.ProviderID
+}
 
-func (b CloudProviderBuilder) buildSpotinst(do cloudprovider.NodeGroupDiscoveryOptions, rl *cloudprovider.ResourceLimiter) cloudprovider.CloudProvider {
+
+func BuildSpotinst(opts config.AutoscalingOptions, do cloudprovider.NodeGroupDiscoveryOptions, rl *cloudprovider.ResourceLimiter) cloudprovider.CloudProvider {
 	var config io.ReadCloser
-	if b.cloudConfig != "" {
+	if opts.CloudConfig != "" {
 		var err error
-		config, err = os.Open(b.cloudConfig)
+		config, err = os.Open(opts.CloudConfig)
 		if err != nil {
-			glog.Fatalf("Couldn't open cloud provider configuration %s: %#v", b.cloudConfig, err)
+			klog.Fatalf("Couldn't open cloud provider configuration %s: %#v", opts.CloudConfig, err)
 		}
 		defer config.Close()
 	}
 
-	manager, err := spotinst.NewCloudManager(config, do)
+	manager, err := NewCloudManager(config, do)
 	if err != nil {
-		glog.Fatalf("Failed to create Spotinst manager: %v", err)
+		klog.Fatalf("Failed to create Spotinst manager: %v", err)
 	}
 
-	provider, err := spotinst.NewCloudProvider(manager, rl)
+	provider, err := NewCloudProvider(manager, rl)
 	if err != nil {
-		glog.Fatalf("Failed to create Spotinst cloud provider: %v", err)
+		klog.Fatalf("Failed to create Spotinst cloud provider: %v", err)
 	}
 
 	return provider

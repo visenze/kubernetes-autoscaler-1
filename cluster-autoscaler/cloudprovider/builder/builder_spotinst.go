@@ -35,7 +35,7 @@ const DefaultCloudProvider = spotinst.ProviderName
 func buildCloudProvider(opts config.AutoscalingOptions, do cloudprovider.NodeGroupDiscoveryOptions, rl *cloudprovider.ResourceLimiter) cloudprovider.CloudProvider {
 	switch opts.CloudProviderName {
 	case spotinst.ProviderName:
-		return spotinst.Build(opts, do, rl)
+		return spotinst.BuildSpotinst(opts, do, rl)
 	}
 
 	return nil

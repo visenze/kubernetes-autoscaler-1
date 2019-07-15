@@ -23,12 +23,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"github.com/spotinst/spotinst-sdk-go/service/elastigroup/providers/aws"
 	"github.com/spotinst/spotinst-sdk-go/spotinst"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/autoscaler/cluster-autoscaler/cloudprovider"
-	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
+	schedulercache "k8s.io/kubernetes/pkg/scheduler/cache"
 )
 
 type Group struct {
@@ -127,19 +127,20 @@ func (grp *Group) Debug() string {
 }
 
 // Nodes returns a list of all nodes that belong to this node group.
-func (grp *Group) Nodes() ([]string, error) {
+func (grp *Group) Nodes() ([]cloudprovider.Instance, error) {
 	in := &aws.StatusGroupInput{
 		GroupID: spotinst.String(grp.Id()),
 	}
 	status, err := grp.manager.groupService.CloudProviderAWS().Status(context.Background(), in)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
-	out := make([]string, 0)
+	out := make([]cloudprovider.Instance, 0)
 	for _, instance := range status.Instances {
 		if instance.ID != nil && instance.AvailabilityZone != nil {
-			out = append(out, fmt.Sprintf("aws:///%s/%s",
-				*instance.AvailabilityZone, *instance.ID))
+			out = append(out,
+				    cloudprovider.Instance{Id: fmt.Sprintf("aws:///%s/%s",
+				    	                                   *instance.AvailabilityZone, *instance.ID)})
 		}
 	}
 	return out, nil
@@ -147,7 +148,7 @@ func (grp *Group) Nodes() ([]string, error) {
 
 // TemplateNodeInfo returns a node template for this node group.
 func (grp *Group) TemplateNodeInfo() (*schedulercache.NodeInfo, error) {
-	glog.Infof("No working nodes in node group %s, trying to generate from template", grp.Id())
+	klog.Infof("No working nodes in node group %s, trying to generate from template", grp.Id())
 
 	template, err := grp.manager.buildGroupTemplate(grp.Id())
 	if err != nil {
@@ -186,8 +187,8 @@ func (grp *Group) Exist() bool {
 }
 
 // Create creates the node group on the cloud provider side.
-func (grp *Group) Create() error {
-	return cloudprovider.ErrAlreadyExist
+func (grp *Group) Create() (cloudprovider.NodeGroup, error) {
+	return nil, cloudprovider.ErrAlreadyExist
 }
 
 // Delete deletes the node group on the cloud provider side.
@@ -224,6 +225,6 @@ func extractInstanceId(providerID string) (string, error) {
 	parts := strings.Split(providerID[len(prefix):], "/")
 	instanceID := parts[1]
 
-	glog.Infof("Instance ID `%s` extracted from provider `%s`", instanceID, providerID)
+	klog.Infof("Instance ID `%s` extracted from provider `%s`", instanceID, providerID)
 	return instanceID, nil
 }

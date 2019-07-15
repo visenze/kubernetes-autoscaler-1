@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"github.com/spotinst/spotinst-sdk-go/service/elastigroup"
 	"github.com/spotinst/spotinst-sdk-go/service/elastigroup/providers/aws"
 	"github.com/spotinst/spotinst-sdk-go/spotinst"
@@ -62,7 +62,7 @@ type CloudConfig struct {
 
 // NewCloudManager constructs manager object.
 func NewCloudManager(config io.Reader, discoveryOpts cloudprovider.NodeGroupDiscoveryOptions) (*CloudManager, error) {
-	glog.Info("Building Spotinst cloud manager")
+	klog.Info("Building Spotinst cloud manager")
 
 	cfg, err := readCloudConfig(config)
 	if err != nil {
@@ -88,7 +88,7 @@ func NewCloudManager(config io.Reader, discoveryOpts cloudprovider.NodeGroupDisc
 
 	go wait.Until(func() {
 		if err := manager.forceRefresh(); err != nil {
-			glog.Errorf("Error while refreshing cache: %v", err)
+			klog.Errorf("Error while refreshing cache: %v", err)
 		}
 	}, time.Hour, manager.interruptCh)
 
@@ -113,7 +113,7 @@ func newService(cloudConfig *CloudConfig) (elastigroup.Service, error) {
 
 func newStdLogger() log.Logger {
 	return log.LoggerFunc(func(format string, args ...interface{}) {
-		glog.V(4).Infof(format, args...)
+		klog.V(4).Infof(format, args...)
 	})
 }
 
@@ -131,7 +131,7 @@ func readCloudConfig(config io.Reader) (*CloudConfig, error) {
 }
 
 func (mgr *CloudManager) addNodeGroups(specs []string) error {
-	glog.Info("Attempting to add node groups")
+	klog.Info("Attempting to add node groups")
 
 	for _, spec := range specs {
 		if err := mgr.addNodeGroup(spec); err != nil {
@@ -143,7 +143,7 @@ func (mgr *CloudManager) addNodeGroups(specs []string) error {
 }
 
 func (mgr *CloudManager) addNodeGroup(spec string) error {
-	glog.Infof("Attempting to add node group: %s", spec)
+	klog.Infof("Attempting to add node group: %s", spec)
 
 	group, err := mgr.buildGroupFromSpec(spec)
 	if err != nil {
@@ -151,7 +151,7 @@ func (mgr *CloudManager) addNodeGroup(spec string) error {
 	}
 	mgr.RegisterGroup(group)
 
-	glog.Infof("Node group added: %s", group.groupID)
+	klog.Infof("Node group added: %s", group.groupID)
 	return nil
 }
 
@@ -232,7 +232,7 @@ func (mgr *CloudManager) GetGroupForInstance(instanceID string) (*Group, error) 
 		return group, nil
 	}
 
-	glog.Warningf("Instance `%s` does not belong to any managed group", instanceID)
+	klog.Warningf("Instance `%s` does not belong to any managed group", instanceID)
 	return nil, nil
 }
 
@@ -299,7 +299,7 @@ func (mgr *CloudManager) Refresh() error {
 func (mgr *CloudManager) forceRefresh() error {
 	mgr.regenerateCache()
 	mgr.refreshedAt = time.Now()
-	glog.V(2).Infof("Refreshed, next refresh after %v", mgr.refreshedAt.Add(mgr.refreshInterval))
+	klog.V(2).Infof("Refreshed, next refresh after %v", mgr.refreshedAt.Add(mgr.refreshInterval))
 	return nil
 }
 
@@ -309,9 +309,9 @@ func (mgr *CloudManager) regenerateCache() {
 
 	mgr.cache = make(map[string]*Group)
 	for _, group := range mgr.groups {
-		glog.V(4).Infof("Regenerating resource group information for %s", group.groupID)
+		klog.V(4).Infof("Regenerating resource group information for %s", group.groupID)
 		if err := mgr.refreshGroupNodes(group); err != nil {
-			glog.Warningf("Could not retrieve nodes for group %s: %v", group.groupID, err)
+			klog.Warningf("Could not retrieve nodes for group %s: %v", group.groupID, err)
 		}
 	}
 }
@@ -327,7 +327,7 @@ func (mgr *CloudManager) refreshGroupNodes(grp *Group) error {
 	for _, instance := range status.Instances {
 		if instance.ID != nil {
 			instanceID := spotinst.StringValue(instance.ID)
-			glog.Infof("Managing AWS instance with ID %s in group %s", instanceID, grp.Id())
+			klog.Infof("Managing AWS instance with ID %s in group %s", instanceID, grp.Id())
 			mgr.cache[instanceID] = grp
 		}
 	}
@@ -342,7 +342,7 @@ type groupTemplate struct {
 }
 
 func (mgr *CloudManager) buildGroupTemplate(groupID string) (*groupTemplate, error) {
-	glog.Infof("Building template for group %s", groupID)
+	klog.Infof("Building template for group %s", groupID)
 
 	group, err := mgr.getResourceForGroup(groupID)
 	if err != nil {
@@ -357,7 +357,7 @@ func (mgr *CloudManager) buildGroupTemplate(groupID string) (*groupTemplate, err
 	region := zone[0 : len(zone)-1]
 
 	if len(group.Compute.AvailabilityZones) > 1 {
-		glog.Warningf("Found multiple availability zones, using %s", zone)
+		klog.Warningf("Found multiple availability zones, using %s", zone)
 	}
 
 	tmpl := &groupTemplate{
@@ -371,7 +371,7 @@ func (mgr *CloudManager) buildGroupTemplate(groupID string) (*groupTemplate, err
 }
 
 func (mgr *CloudManager) buildNodeFromTemplate(group *Group, template *groupTemplate) (*apiv1.Node, error) {
-	glog.Infof("Building node from template of group %s", group.Id())
+	klog.Infof("Building node from template of group %s", group.Id())
 
 	node := apiv1.Node{}
 	nodeName := fmt.Sprintf("%s-group-%d", group.groupID, rand.Int63())
@@ -400,8 +400,8 @@ func (mgr *CloudManager) buildNodeFromTemplate(group *Group, template *groupTemp
 	node.Spec.Taints = extractTaintsFromGroup(template.Tags)
 	node.Status.Conditions = cloudprovider.BuildReadyConditions()
 
-	glog.V(4).Infof("Node `%s` labels: %s", nodeName, stringutil.Stringify(node.Labels))
-	glog.V(4).Infof("Node `%s` taints: %s", nodeName, stringutil.Stringify(node.Spec.Taints))
+	klog.V(4).Infof("Node `%s` labels: %s", nodeName, stringutil.Stringify(node.Labels))
+	klog.V(4).Infof("Node `%s` taints: %s", nodeName, stringutil.Stringify(node.Spec.Taints))
 
 	return &node, nil
 }

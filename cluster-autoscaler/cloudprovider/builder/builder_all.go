@@ -54,7 +54,7 @@ func buildCloudProvider(opts config.AutoscalingOptions, do cloudprovider.NodeGro
 		return azure.BuildAzure(opts, do, rl)
 	case alicloud.ProviderName:
 		return alicloud.BuildAlicloud(opts, do, rl)
-	case spotinst.Providername:
+	case spotinst.ProviderName:
 		return spotinst.BuildSpotinst(opts, do, rl)
 	}
 	return nil

@@ -5,7 +5,7 @@ library(identifier: "visenze-lib@${params['VISENZE_LIB_BRANCH'] ?: 'master'}", c
 
 pipeline {
   agent {
-    label "${params.AGENT_LABEL ?: 'pod'}"
+    label "${params.AGENT_LABEL ?: 'build'}"
   }
 
   options {

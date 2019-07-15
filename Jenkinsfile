@@ -68,12 +68,16 @@ pipeline {
           dir('cluster-autoscaler') {
             def version = sh(script: "grep ClusterAutoscalerVersion version.go",
                              returnStdout: true).split('"')[-2]
+            def registry = 'visenze'
             withEnv([
-              'REGISTRY=visenze',
+              "REGISTRY=${registry}",
               "TAG=${version}"
             ]) {
               sh('make make-image')
-              sh('make push-image')
+              docker.withRegistry('', 'docker-hub-credential') {
+                def image = docker.image("${registry}/cluster-autoscaler:${version}")
+                image.push()
+              }
             }
           }
         }

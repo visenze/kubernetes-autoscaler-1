@@ -69,10 +69,10 @@ func GetGPUMemoryRequests(pods []*apiv1.Pod) *RequestInfo {
 
 // GetNodeTargetGpuMemory returns the gpu memory on a given node.
 func GetNodeTargetGpuMemory(node *apiv1.Node, nodeGroup cloudprovider.NodeGroup) (gpuMemory int64, error errors.AutoscalerError) {
-	gpuLabel, found := node.Labels[GPULabel]
-	if !found {
-		return  0, nil
-	}
+	//gpuLabel, found := node.Labels[GPULabel]
+	//if !found {
+	//	return  0, nil
+	//}
 
 	gpuMemoryAllocatable, found := node.Status.Allocatable[ResourceVisenzeGPUMemory]
 	if found && gpuMemoryAllocatable.Value() > 0 {

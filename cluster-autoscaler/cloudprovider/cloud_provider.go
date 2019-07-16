@@ -218,19 +218,34 @@ const (
 	// ResourceNameMemory is string name for memory. It's used by ResourceLimiter.
 	// Memory should always be provided in bytes.
 	ResourceNameMemory = "memory"
+	ResourceVisenzeGPUMemory = "visenze.com/nvidia-gpu-memory"
+	ResourceNvidiaGPU = "nvidia.com/gpu"
 )
 
 // IsGpuResource checks if given resource name point denotes a gpu type
 func IsGpuResource(resourceName string) bool {
-	// hack: we assume anything which is not cpu/memory to be a gpu.
-	// we are not getting anything more that a map string->limits from the user
-	return resourceName != ResourceNameCores && resourceName != ResourceNameMemory
+	return resourceName == ResourceNvidiaGPU
 }
 
 // ContainsGpuResources returns true iff given list contains any resource name denoting a gpu type
 func ContainsGpuResources(resources []string) bool {
 	for _, resource := range resources {
 		if IsGpuResource(resource) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsGpuMemoryResource checks if given resource name point denotes gpu memory
+func IsGpuMemoryResource(resourceName string) bool {
+	return resourceName == ResourceVisenzeGPUMemory
+}
+
+// ContainsGpuResources returns true iff given list contains any resource name denoting a gpu type
+func ContainsGpuMemoryResources(resources []string) bool {
+	for _, resource := range resources {
+		if IsGpuMemoryResource(resource) {
 			return true
 		}
 	}

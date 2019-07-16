@@ -42,10 +42,25 @@ pipeline {
       }
     }
 
+    stage('Test') {
+      when {
+        expression {
+          return canRun()
+        }
+      }
+      steps {
+        script {
+          dir('cluster-autoscaler') {
+            sh('make test-in-docker')
+          }
+        }
+      }
+    }
+
     stage('Compile') {
       when {
         expression {
-          return env.BRANCH_NAME.startsWith('release-') || env.BRANCH_NAME == 'master'
+          return canRun()
         }
       }
       steps {
@@ -60,7 +75,7 @@ pipeline {
     stage('Docker') {
       when {
         expression {
-          return env.BRANCH_NAME.startsWith('release-') || env.BRANCH_NAME == 'master'
+          return canRun()
         }
       }
       steps {
@@ -84,4 +99,8 @@ pipeline {
       }
     }
   }
+}
+
+def canRun() {
+  return env.BRANCH_NAME.startsWith('release-') || env.BRANCH_NAME == 'master'
 }

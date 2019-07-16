@@ -3,6 +3,9 @@ package gpumemory
 import (
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/autoscaler/cluster-autoscaler/cloudprovider"
+	"k8s.io/autoscaler/cluster-autoscaler/utils/errors"
+	"k8s.io/klog"
 )
 
 const (
@@ -62,4 +65,47 @@ func GetGPUMemoryRequests(pods []*apiv1.Pod) *RequestInfo {
 		ri.Pods = append(ri.Pods, pod)
 	}
 	return ri
+}
+
+// GetNodeTargetGpuMemory returns the gpu memory on a given node.
+func GetNodeTargetGpuMemory(node *apiv1.Node, nodeGroup cloudprovider.NodeGroup) (gpuMemory int64, error errors.AutoscalerError) {
+	gpuLabel, found := node.Labels[GPULabel]
+	if !found {
+		return  0, nil
+	}
+
+	gpuMemoryAllocatable, found := node.Status.Allocatable[ResourceVisenzeGPUMemory]
+	if found && gpuMemoryAllocatable.Value() > 0 {
+		return gpuMemoryAllocatable.Value(), nil
+	}
+
+	// A node is supposed to have GPUs (based on label), but they're not available yet
+	// (driver haven't installed yet?).
+	// Unfortunately we can't deduce how many GPUs it will actually have from labels (just
+	// that it will have some).
+	// Ready for some evil hacks? Well, you won't be disappointed - let's pretend we haven't
+	// seen the node and just use the template we use for scale from 0. It'll be our little
+	// secret.
+
+	if nodeGroup == nil {
+		// We expect this code path to be triggered by situation when we are looking at a node which is expected to have gpus (has gpu label)
+		// But those are not yet visible in node's resource (e.g. gpu drivers are still being installed).
+		// In case of node coming from autoscaled node group we would look and node group template here.
+		// But for nodes coming from non-autoscaled groups we have no such possibility.
+		// Let's hope it is a transient error. As long as it exists we will not scale nodes groups with gpus.
+		return 0, errors.NewAutoscalerError(errors.InternalError, "node without with visenze.com/nvidia-gpu-memory label, without capacity not belonging to autoscaled node group")
+	}
+
+	template, err := nodeGroup.TemplateNodeInfo()
+	if err != nil {
+		klog.Errorf("Failed to build template for getting GPU estimation for node %v: %v", node.Name, err)
+		return  0, errors.ToAutoscalerError(errors.CloudProviderError, err)
+	}
+	if gpuMemoryCapacity, found := template.Node().Status.Capacity[ResourceVisenzeGPUMemory]; found {
+		return gpuMemoryCapacity.Value(), nil
+	}
+
+	// if template does not define gpus we assume node will not have any even if ith has gpu label
+	klog.Warningf("Template does not define gpus even though node from its node group does; node=%v", node.Name)
+	return  0, nil
 }

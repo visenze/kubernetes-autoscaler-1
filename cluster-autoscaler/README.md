@@ -130,3 +130,11 @@ Supported cloud providers:
 * AWS https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws/README.md
 * Azure https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/azure/README.md
 * Alibaba Cloud https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/alicloud/README.md
+
+# Visenze specifics
+We have made some minor adjustments to this cluster-autoscaler.
+You can use the spotinst variant with our custom resource GPU memory enabled for scale up and down to zero.
+To scale to/from zero with GPU memory, you will need the following:
+* Nodes must have the label `accelerator=<anything>` to identify them as GPU nodes
+* Some undocumented behavior copied from the AWS side to spotinst cluster autoscaler:
+  * Scale to zero uses the tags `k8s.io/cluster-autoscaler/node-template/label` for node labels and `k8s.io/cluster-autoscaler/node-template/taint` for node taints

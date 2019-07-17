@@ -28,7 +28,7 @@ const (
 	// ResourceNvidiaGPU is the name of the Nvidia GPU resource.
 	ResourceNvidiaGPU = "nvidia.com/gpu"
 	// GPULabel is the label added to nodes with GPU resource on GKE.
-	GPULabel = "cloud.google.com/gke-accelerator"
+	GPULabel = "accelerator"
 	// DefaultGPUType is the type of GPU used in NAP if the user
 	// don't specify what type of GPU his pod wants.
 	DefaultGPUType = "nvidia-tesla-k80"
@@ -53,6 +53,7 @@ var (
 	// knownGpuTypes lists all known GPU types, to be used in metrics; map for convenient access
 	// TODO(kgolab) obtain this from Cloud Provider
 	knownGpuTypes = map[string]struct{}{
+		"nvidia-tesla-m60":  {},
 		"nvidia-tesla-k80":  {},
 		"nvidia-tesla-p100": {},
 		"nvidia-tesla-v100": {},

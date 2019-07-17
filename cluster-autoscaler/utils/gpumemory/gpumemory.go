@@ -69,10 +69,10 @@ func GetGPUMemoryRequests(pods []*apiv1.Pod) *RequestInfo {
 
 // GetNodeTargetGpuMemory returns the gpu memory on a given node.
 func GetNodeTargetGpuMemory(node *apiv1.Node, nodeGroup cloudprovider.NodeGroup) (gpuMemory int64, error errors.AutoscalerError) {
-	//gpuLabel, found := node.Labels[GPULabel]
-	//if !found {
-	//	return  0, nil
-	//}
+	_, found := node.Labels[GPULabel]
+	if !found {
+		return  0, nil
+	}
 
 	gpuMemoryAllocatable, found := node.Status.Allocatable[ResourceVisenzeGPUMemory]
 	if found && gpuMemoryAllocatable.Value() > 0 {
@@ -98,7 +98,7 @@ func GetNodeTargetGpuMemory(node *apiv1.Node, nodeGroup cloudprovider.NodeGroup)
 
 	template, err := nodeGroup.TemplateNodeInfo()
 	if err != nil {
-		klog.Errorf("Failed to build template for getting GPU estimation for node %v: %v", node.Name, err)
+		klog.Errorf("Failed to build template for getting GPU memory estimation for node %v: %v", node.Name, err)
 		return  0, errors.ToAutoscalerError(errors.CloudProviderError, err)
 	}
 	if gpuMemoryCapacity, found := template.Node().Status.Capacity[ResourceVisenzeGPUMemory]; found {

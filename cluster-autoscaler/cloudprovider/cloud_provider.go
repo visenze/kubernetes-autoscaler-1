@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -224,7 +225,7 @@ const (
 
 // IsGpuResource checks if given resource name point denotes a gpu type
 func IsGpuResource(resourceName string) bool {
-	return resourceName == ResourceNvidiaGPU
+	return strings.HasPrefix(resourceName, "nvidia-")
 }
 
 // ContainsGpuResources returns true iff given list contains any resource name denoting a gpu type

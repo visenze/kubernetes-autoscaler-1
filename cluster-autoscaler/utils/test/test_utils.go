@@ -67,7 +67,7 @@ func BuildTestPod(name string, cpu int64, mem int64) *apiv1.Pod {
 const (
 	// cannot use constants from gpu module due to cyclic package import
 	resourceNvidiaGPU = "nvidia.com/gpu"
-	gpuLabel          = "cloud.google.com/gke-accelerator"
+	gpuLabel          = "accelerator"
 	defaultGPUType    = "nvidia-tesla-k80"
 )
 

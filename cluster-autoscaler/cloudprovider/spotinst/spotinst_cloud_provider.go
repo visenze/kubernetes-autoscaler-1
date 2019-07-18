@@ -108,7 +108,6 @@ func (c *CloudProvider) GetInstanceID(node *apiv1.Node) string {
 	return node.Spec.ProviderID
 }
 
-
 func BuildSpotinst(opts config.AutoscalingOptions, do cloudprovider.NodeGroupDiscoveryOptions, rl *cloudprovider.ResourceLimiter) cloudprovider.CloudProvider {
 	var config io.ReadCloser
 	if opts.CloudConfig != "" {

@@ -98,3 +98,8 @@ func (c *CloudProvider) Cleanup() error {
 func (c *CloudProvider) Refresh() error {
 	return c.manager.Refresh()
 }
+
+// GetInstanceID gets the instance ID for the specified node.
+func (gce *CloudProvider) GetInstanceID(node *apiv1.Node) string {
+	return node.Spec.ProviderID
+}

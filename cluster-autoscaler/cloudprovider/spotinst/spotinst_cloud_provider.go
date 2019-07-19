@@ -100,6 +100,6 @@ func (c *CloudProvider) Refresh() error {
 }
 
 // GetInstanceID gets the instance ID for the specified node.
-func (gce *CloudProvider) GetInstanceID(node *apiv1.Node) string {
+func (c *CloudProvider) GetInstanceID(node *apiv1.Node) string {
 	return node.Spec.ProviderID
 }

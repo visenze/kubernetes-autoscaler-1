@@ -21,11 +21,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"k8s.io/autoscaler/cluster-autoscaler/utils/mpscontext"
 	"math/rand"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"k8s.io/autoscaler/cluster-autoscaler/utils/mpscontext"
 
 	"github.com/golang/glog"
 	"github.com/spotinst/spotinst-sdk-go/service/elastigroup"
@@ -346,6 +348,40 @@ type groupTemplate struct {
 	Tags         []*aws.Tag
 }
 
+func (mgr *CloudManager) inferInstanceType(instanceTypeName string) *instanceType {
+	ret := &instanceType{
+		InstanceType: instanceTypeName,
+		VCPU:         1,
+		MemoryMb:     1024, // 1GB
+		GPU:          0,
+	}
+	size := 1
+	if strings.HasSuffix(instanceTypeName, ".medium") || strings.HasSuffix(instanceTypeName, ".large") {
+		size = 1
+	} else if strings.HasSuffix(instanceTypeName, ".xlarge") {
+		size = 2
+	} else {
+		elems := strings.Split(instanceTypeName, ".")
+		if len(elems) > 1 {
+			nums := strings.Split(elems[1], "xlarge")
+			if len(nums) > 0 {
+				if num, err := strconv.Atoi(nums[0]); err == nil {
+					size = num * 2
+				}
+			}
+		}
+	}
+	ret.VCPU = 2 * int64(size)
+	ret.MemoryMb = 1024 * 2 * ret.VCPU
+	if strings.HasPrefix(instanceTypeName, "g") || strings.HasPrefix(instanceTypeName, "p") {
+		ret.GPU = int64(size / 4)
+		if ret.GPU <= 0 {
+			ret.GPU = 1
+		}
+	}
+	return ret
+}
+
 func (mgr *CloudManager) buildGroupTemplate(groupID string) (*groupTemplate, error) {
 	glog.Infof("Building template for group %s", groupID)
 
@@ -365,8 +401,14 @@ func (mgr *CloudManager) buildGroupTemplate(groupID string) (*groupTemplate, err
 		glog.Warningf("Found multiple availability zones, using %s", zone)
 	}
 
+	instanceTypeName := spotinst.StringValue(group.Compute.InstanceTypes.OnDemand)
+	foundInstanceType := InstanceTypes[instanceTypeName]
+	if foundInstanceType == nil {
+		foundInstanceType = mgr.inferInstanceType(instanceTypeName)
+	}
+
 	tmpl := &groupTemplate{
-		InstanceType: InstanceTypes[spotinst.StringValue(group.Compute.InstanceTypes.OnDemand)],
+		InstanceType: foundInstanceType,
 		Region:       region,
 		Zone:         zone,
 		Tags:         group.Compute.LaunchSpecification.Tags,

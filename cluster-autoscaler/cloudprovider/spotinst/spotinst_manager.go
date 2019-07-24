@@ -404,6 +404,7 @@ func (mgr *CloudManager) buildGroupTemplate(groupID string) (*groupTemplate, err
 	instanceTypeName := spotinst.StringValue(group.Compute.InstanceTypes.OnDemand)
 	foundInstanceType := InstanceTypes[instanceTypeName]
 	if foundInstanceType == nil {
+		glog.Warningf("Unable to get node template info for instance type %s", instanceTypeName)
 		foundInstanceType = mgr.inferInstanceType(instanceTypeName)
 	}
 

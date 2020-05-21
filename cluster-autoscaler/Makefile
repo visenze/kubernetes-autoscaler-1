@@ -61,7 +61,7 @@ docker-builder:
 	docker build -t autoscaling-builder ../builder
 
 build-in-docker: clean docker-builder
-	docker run -v `pwd`:/gopath/src/k8s.io/autoscaler/cluster-autoscaler/ autoscaling-builder:latest bash -c 'cd /gopath/src/k8s.io/autoscaler/cluster-autoscaler && BUILD_TAGS=${BUILD_TAGS} LDFLAGS="${LDFLAGS}" make build-binary'
+	docker run -v `pwd`:/gopath/src/k8s.io/autoscaler/cluster-autoscaler/ autoscaling-builder:latest bash -c 'cd /gopath/src/k8s.io/autoscaler/cluster-autoscaler && go get -u github.com/spotinst/spotinst-sdk-go && BUILD_TAGS=${BUILD_TAGS} LDFLAGS="${LDFLAGS}" make build-binary'
 
 release: build-in-docker execute-release
 	@echo "Full in-docker release ${TAG}${FOR_PROVIDER} completed"
